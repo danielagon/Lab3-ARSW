@@ -1,0 +1,3 @@
+Los posible errores son:
+-Un cliente intenta consultar o modificar una orden que fue eliminada por otro cliente.
+-Un cliente consulta una orden y al mismo tiempo otro cliente la esta modificando.
