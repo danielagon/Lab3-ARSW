@@ -16,16 +16,15 @@
  */
 package edu.eci.arsw.myrestaurant.restcontrollers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.eci.arsw.myrestaurant.model.Order;
 import edu.eci.arsw.myrestaurant.model.ProductType;
 import edu.eci.arsw.myrestaurant.model.RestaurantProduct;
 import edu.eci.arsw.myrestaurant.services.OrderServicesException;
 import edu.eci.arsw.myrestaurant.services.RestaurantOrderServices;
-import edu.eci.arsw.myrestaurant.services.RestaurantOrderServicesStub;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -54,46 +53,34 @@ public class OrdersAPIController {
     
     @RequestMapping(method = RequestMethod.GET)
     public ResponseEntity<?> manejadorGetRecursoOrders(){
-        try{
-            ObjectMapper mapper = new ObjectMapper();
-            String json = mapper.writeValueAsString(orders);
-            return new ResponseEntity<>(json,HttpStatus.ACCEPTED);
-        }catch (JsonProcessingException ex){
-            Logger.getLogger(OrdersAPIController.class.getName()).log(Level.SEVERE, null, ex);
-            return new ResponseEntity<>("Error creando el json",HttpStatus.NO_CONTENT);
+        Set<Integer> o =orders.getTablesWithOrders();
+        Map<Integer,Order> map = new ConcurrentHashMap<>();
+        for (Integer i:o){
+            map.put(i,orders.getTableOrder(i));
         }
+        return new ResponseEntity<>(map,HttpStatus.ACCEPTED);
     }
     
     @RequestMapping(value = "/{idmesa}")
     public ResponseEntity<?> manejadorGetOrder(@PathVariable int idmesa){
-        try{
+        if (orders.getTablesWithOrders().contains(idmesa)){
             Order order = orders.getTableOrder(idmesa);
-            ObjectMapper mapper = new ObjectMapper();
-            String json = mapper.writeValueAsString(order);
-            return new ResponseEntity<>(json,HttpStatus.ACCEPTED);
-        }catch(NullPointerException ex){
-            Logger.getLogger(OrdersAPIController.class.getName()).log(Level.SEVERE, null, ex);
-            return new ResponseEntity<>("El numero de la mesa no existe o no tiene una orden asociada",HttpStatus.NOT_FOUND);
-        }catch(JsonProcessingException ex){
-            Logger.getLogger(OrdersAPIController.class.getName()).log(Level.SEVERE, null, ex);
-            return new ResponseEntity<>("Error creando el json",HttpStatus.NO_CONTENT);
+            return new ResponseEntity<>(order,HttpStatus.ACCEPTED);
+        }else{
+            return new ResponseEntity<>("Error 404: El numero de la mesa no existe o no tiene una orden asociada",HttpStatus.NOT_FOUND);
         }
+        
     }
     
     @RequestMapping(method = RequestMethod.POST)	
-    public ResponseEntity<?> manejadorPostRecursoOrders(@RequestBody String o){
+    public ResponseEntity<?> manejadorPostRecursoOrders(@RequestBody Order o){
         try {
             //registrar dato
-            ObjectMapper mapper = new ObjectMapper();
-            Order newOrder = mapper.readValue(o, Order.class);
-            orders.addNewOrderToTable(newOrder);
+            orders.addNewOrderToTable(o);
             return new ResponseEntity<>(HttpStatus.CREATED);           
 	} catch (OrderServicesException ex) {        
             Logger.getLogger(OrdersAPIController.class.getName()).log(Level.SEVERE, null, ex);
             return new ResponseEntity<>("Error en la nueva orden",HttpStatus.FORBIDDEN);
-        } catch (IOException ex) {
-            Logger.getLogger(OrdersAPIController.class.getName()).log(Level.SEVERE, null, ex);
-            return new ResponseEntity<>("Error al crear la nueva orden",HttpStatus.FORBIDDEN);
         }        
     }
     
@@ -101,10 +88,10 @@ public class OrdersAPIController {
     public ResponseEntity<?> manejadorGetTotal(@PathVariable int idmesa){
         try{
             int total = orders.calculateTableBill(idmesa);
-            return new ResponseEntity<>(total,HttpStatus.ACCEPTED);
+            return new ResponseEntity<>("El valor total de la orden es: "+total,HttpStatus.ACCEPTED);
         }catch (OrderServicesException ex){
             Logger.getLogger(OrdersAPIController.class.getName()).log(Level.SEVERE, null, ex);
-            return new ResponseEntity<>("Error en la orden",HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("Mesa inexistente o ya liberada",HttpStatus.NOT_FOUND);
         }
     }
     

@@ -85,7 +85,6 @@ public class RestaurantOrderServicesStub implements RestaurantOrderServices {
     private static final Map<String, RestaurantProduct> productsMap;
 
     private static final Map<Integer, Order> tableOrders;
-    
 
     static {
         productsMap = new ConcurrentHashMap<>();
